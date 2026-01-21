@@ -4,6 +4,7 @@ const DailyLog = require("../models/dailyLog.js");
 const router = express.Router();
 
 // POST /dailylogs
+// CREATE a daily log
 router.post("/", verifyToken, async (req, res) => {
     try {
         req.body.userId = req.user._id;
@@ -17,6 +18,7 @@ router.post("/", verifyToken, async (req, res) => {
 });
 
 // GET /dailylogs
+// READ all daily logs
 router.get("/", verifyToken, async (req, res) => {
     try {
         const dailyLogs = await DailyLog.find({})
@@ -28,12 +30,42 @@ router.get("/", verifyToken, async (req, res) => {
     }
 });
 
-// GET /dailylogs/:logId
+// READ - GET /dailylogs/:logId
+// READ a daily log
 router.get('/:logId', verifyToken, async (req, res) => {
     try {
         // populate userId of dailyLog
         const dailyLog = await DailyLog.findById(req.params.logId).populate('userId');
         res.status(200).json(dailyLog);
+    } catch (err) {
+        res.status(500).json({ err: err.message });
+    }
+});
+
+// PUT /dailylogs/:logId
+// UPDATE a daily log
+router.put("/:logId", verifyToken, async (req, res) => {
+    try {
+        // Find the dailyLog:
+        const dailyLog = await DailyLog.findById(req.params.logId);
+
+        // Check permissions:
+        if (!dailyLog.userId.equals(req.user._id)) {
+            return res.status(403).send("You're not allowed to do that!");
+        }
+
+        // Update dailyLog:
+        const updatedDailyLog = await DailyLog.findByIdAndUpdate(
+            req.params.logId,
+            req.body,
+            { new: true }
+        );
+
+        // Append req.user to the userId property:
+        updatedDailyLog._doc.userId = req.user;
+
+        // Issue JSON response:
+        res.status(200).json(updatedDailyLog);
     } catch (err) {
         res.status(500).json({ err: err.message });
     }
